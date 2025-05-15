@@ -1,4 +1,6 @@
 <?php
+session_start();
+
 $host = 'localhost';
 $db   = 'uni_game_website';
 $user = 'root';
@@ -15,45 +17,57 @@ $password = $_POST['password'];
 $confirm_password = $_POST['confirm_password'];
 $favorite_genre = trim($_POST['favorite_genre']);
 
-// === Регулярні вирази ===
-$loginPattern = '/^[a-zA-Zа-яА-ЯёЁіІїЇєЄґҐ0-9_-]{4,}$/u';
-$passwordPattern = '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/u';
-$emailPattern = '/^[^@]+@[^@]+\.[^@]+$/u';
+$errors = [];
+$_SESSION['form_data'] = $_POST; // зберігаємо введені дані
 
-// === Перевірки ===
-if (!preg_match($loginPattern, $username)) {
-    die("Логін має містити щонайменше 4 символи та лише літери (лат/укр), цифри, _ або -");
+// Валідація
+if (!preg_match('/^[a-zA-Zа-яА-ЯёЁіІїЇєЄґҐ0-9_-]{4,}$/u', $username)) {
+    $errors['username'] = "Логін має містити щонайменше 4 символи та лише літери, цифри, _ або -";
 }
 
-if (!preg_match($passwordPattern, $password)) {
-    die("Пароль має містити щонайменше 7 символів, хоча б одну велику літеру, малу літеру та цифру");
+if (!preg_match('/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d).{7,}$/u', $password)) {
+    $errors['password'] = "Пароль має містити щонайменше 7 символів, хоча б одну велику літеру, малу літеру та цифру";
 }
 
 if ($password !== $confirm_password) {
-    die("Паролі не співпадають");
+    $errors['confirm_password'] = "Паролі не співпадають";
 }
 
-if (!preg_match($emailPattern, $email)) {
-    die("Некоректна email-адреса");
+if (!preg_match('/^[^@]+@[^@]+\.[^@]+$/u', $email)) {
+    $errors['email'] = "Некоректна email-адреса";
 }
 
-// Власне поле (можна додати свій варіант перевірки)
 if (empty($favorite_genre)) {
-    die("Поле 'Улюблений жанр ігор' обов'язкове для заповнення");
+    $errors['favorite_genre'] = "Поле 'Улюблений жанр ігор' обов'язкове";
 }
 
-// === Зберігаємо користувача ===
-$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+// Перевірка унікальності email
+$emailCheck = $conn->prepare("SELECT id FROM users WHERE email = ?");
+$emailCheck->bind_param("s", $email);
+$emailCheck->execute();
+$emailCheck->store_result();
+if ($emailCheck->num_rows > 0) {
+    $errors['email'] = "Користувач із такою email-адресою вже існує";
+}
+$emailCheck->close();
 
+if (!empty($errors)) {
+    $_SESSION['errors'] = $errors;
+    header("Location: register.php");
+    exit();
+}
+
+// Успішна реєстрація
+$hashedPassword = password_hash($password, PASSWORD_DEFAULT);
 $stmt = $conn->prepare("INSERT INTO users (name, email, password) VALUES (?, ?, ?)");
 $stmt->bind_param("sss", $username, $email, $hashedPassword);
 
 if ($stmt->execute()) {
+    unset($_SESSION['form_data'], $_SESSION['errors']);
     header("Location: index.php?action=registration_successful");
-    exit(); // обов'язково! Щоб скрипт зупинився після редіректу
+    exit();
 } else {
-    echo "Помилка: " . $stmt->error;
+    $_SESSION['errors']['general'] = "Помилка при збереженні: " . $stmt->error;
+    header("Location: register.php");
+    exit();
 }
-
-$stmt->close();
-$conn->close();
