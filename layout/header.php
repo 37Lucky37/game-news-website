@@ -23,6 +23,7 @@ $formData = $_SESSION['form_data'] ?? [];
             <ul class="navbar-nav mr-auto">
                 <li class="nav-item"><a class="nav-link" href="index.php">Головна</a></li>
                 <li class="nav-item"><a class="nav-link" href="index.php?action=about">Про сайт</a></li>
+                <li class="nav-item"><a class="nav-link" href="index.php?action=news">Новини</a></li>
             </ul>
             <ul class="navbar-nav">
                 <?php if (isset($_SESSION['user_id'])): ?>
