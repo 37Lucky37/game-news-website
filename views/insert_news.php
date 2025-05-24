@@ -8,6 +8,7 @@ $title = $_POST['title'];
 $content = $_POST['content'];
 $imagePath = null;
 
+
 if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
     $uploadDir = '../uploads/';
     if (!file_exists($uploadDir)) mkdir($uploadDir);
@@ -24,6 +25,11 @@ $conn = new mysqli('localhost', 'root', 'kostya', 'uni_game_website');
 $stmt = $conn->prepare("INSERT INTO news (title, content, image_path) VALUES (?, ?, ?)");
 $stmt->bind_param("sss", $title, $content, $imagePath);
 $stmt->execute();
+
+$cacheFile = __DIR__ . '/../cache/news_cache.json';
+if (file_exists($cacheFile)) {
+    unlink($cacheFile);
+}
 
 $stmt->close();
 $conn->close();

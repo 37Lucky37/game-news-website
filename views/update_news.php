@@ -31,6 +31,12 @@ if ($imagePath) {
     $stmt->bind_param("ssi", $title, $content, $id);
 }
 
+$cacheFile = __DIR__ . '/../cache/news_cache.json';
+if (file_exists($cacheFile)) {
+    unlink($cacheFile);
+}
+
+
 $stmt->execute();
 $stmt->close();
 $conn->close();
